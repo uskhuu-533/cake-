@@ -486,26 +486,29 @@ export default function App() {
     return () => window.clearInterval(handle);
   }, []);
 
+  const handleAction = useCallback(() => {
+    if (!hasStarted) {
+      playBackgroundMusic();
+      setHasStarted(true);
+      return;
+    }
+    if (hasAnimationCompleted && isCandleLit) {
+      setIsCandleLit(false);
+      setFireworksActive(true);
+    }
+  }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space" && event.key !== " ") {
-        return;
-      }
+      if (event.code !== "Space" && event.key !== " ") return;
+      // Native buttons already activate with Space; avoid handling it twice.
+      if (event.target instanceof HTMLButtonElement) return;
       event.preventDefault();
-      if (!hasStarted) {
-        playBackgroundMusic();
-        setHasStarted(true);
-        return;
-      }
-      if (hasAnimationCompleted && isCandleLit) {
-        setIsCandleLit(false);
-        setFireworksActive(true);
-      }
+      if (!event.repeat) handleAction();
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
+  }, [handleAction]);
 
   const handleCardToggle = useCallback((id: string) => {
     setActiveCardId((current) => (current === id ? null : id));
@@ -538,8 +541,13 @@ export default function App() {
           })}
         </div>
       </div>
-      {hasAnimationCompleted && isCandleLit && (
-        <div className="hint-overlay">press space to blow out the candle</div>
+      {(!hasStarted || (hasAnimationCompleted && isCandleLit)) && (
+        <div className="action-overlay">
+          <button type="button" className="action-button" onClick={handleAction}>
+            {hasStarted ? "Лаа үлээх 🎂" : "Эхлүүлэх 🎁"}
+          </button>
+          <span className="action-hint">Эсвэл Space товчийг дараарай</span>
+        </div>
       )}
       <Canvas
         gl={{ alpha: true }}
